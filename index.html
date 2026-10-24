@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="pl" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Danych Osobowych</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        accent: {
+                            DEFAULT: '#7b90d5',
+                            hover: '#687dc2',
+                            light: '#f0f3fa',
+                            dark: '#586cae'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-full flex flex-col justify-between selection:bg-accent/20 selection:text-accent transition-colors duration-200">
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 bg-slate-900 dark:bg-slate-800 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700 text-sm font-medium">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toast-message">Skopiowano do schowka!</span>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 shadow-xs transition-colors duration-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-accent flex items-center justify-center text-white shadow-md shadow-accent/30">
+                    <i class="fa-solid fa-id-card text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Generator Danych Osobowych</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Zaawansowany Generator Tożsamości, Dokumentów, NPWZ i KRS</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="openValidatorModal()" class="inline-flex items-center px-4 py-2 rounded-xl text-xs font-semibold bg-accent-light dark:bg-slate-800 text-accent dark:text-accent-light border border-accent/20 hover:bg-accent/10 transition-colors cursor-pointer shadow-xs">
+                    <i class="fa-solid fa-square-check mr-2"></i> Multi-Walidator Danych
+                </button>
+                <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer" title="Przełącz tryb jasny/ciemny">
+                    <i id="theme-icon" class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+        
+        <!-- Controls Section -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 mb-8 transition-colors duration-200">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                
+                <!-- Filter Options -->
+                <div class="flex flex-wrap items-center gap-4 w-full lg:w-auto">
+                    
+                    <!-- Subject Type -->
+                    <div class="flex flex-col gap-1.5 w-full sm:w-auto">
+                        <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Typ Podmiotu</label>
+                        <div class="inline-flex rounded-xl p-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" role="group">
+                            <button type="button" onclick="setEntityType('person')" id="btn-type-person" class="px-4 py-2 text-sm font-medium rounded-lg transition-all bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs">Osoba Fizyczna</button>
+                            <button type="button" onclick="setEntityType('company')" id="btn-type-company" class="px-4 py-2 text-sm font-medium rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">Firma / Spółka / Fundacja</button>
+                        </div>
+                    </div>
+
+                    <!-- Medical Professional Filter (NPWZ) -->
+                    <div class="flex flex-col gap-1.5 w-full sm:w-auto">
+                        <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Prof. Medyczna (NPWZ)</label>
+                        <select id="medical-profession" onchange="generateData()" class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent">
+                            <option value="none" selected>Standardowa / Brak</option>
+                            <option value="lek">Lekarz (7 cyfr + OIL)</option>
+                            <option value="dent">Lekarz Dentysta (7 cyfr + OIL)</option>
+                            <option value="piel">Pielęgniarka / Położna (7 cyfr + OIPiP)</option>
+                        </select>
+                    </div>
+
+                    <!-- KRS Registry Type selector (for Companies) -->
+                    <div id="krs-registry-container" class="flex flex-col gap-1.5 w-full sm:w-auto opacity-40 pointer-events-none transition-opacity">
+                        <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Rejestr KRS</label>
+                        <select id="krs-registry-type" onchange="generateData()" class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent">
+                            <option value="any" selected>Losowy Rejestr</option>
+                            <option value="P">Przedsiębiorcy (Sp. z o.o., S.A.)</option>
+                            <option value="S">Stowarzyszenia & Fundacje</option>
+                        </select>
+                    </div>
+
+                    <!-- Gender selection (for Persons) -->
+                    <div id="gender-filter-container" class="flex flex-col gap-1.5 w-full sm:w-auto">
+                        <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Płeć</label>
+                        <div class="inline-flex rounded-xl p-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" role="group">
+                            <button type="button" onclick="setGender('any')" id="btn-gender-any" class="px-3.5 py-2 text-sm font-medium rounded-lg transition-all bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs">Wszystkie</button>
+                            <button type="button" onclick="setGender('M')" id="btn-gender-m" class="px-3.5 py-2 text-sm font-medium rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">Mężczyzna</button>
+                            <button type="button" onclick="setGender('K')" id="btn-gender-f" class="px-3.5 py-2 text-sm font-medium rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">Kobieta</button>
+                        </div>
+                    </div>
+
+                    <!-- Mode selection (Single vs Bulk) -->
+                    <div class="flex flex-col gap-1.5 w-full sm:w-auto">
+                        <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ilość Rekordów</label>
+                        <select id="bulk-count" onchange="generateData()" class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent">
+                            <option value="1" selected>1 rekord</option>
+                            <option value="5">5 rekordów</option>
+                            <option value="10">10 rekordów</option>
+                            <option value="25">25 rekordów</option>
+                        </select>
+                    </div>
+
+                    <!-- Phone formatting option -->
+                    <div class="flex flex-col gap-1.5 w-full sm:w-auto">
+                        <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Format Telefonu</label>
+                        <select id="phone-format" onchange="generateData()" class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent">
+                            <option value="formatted" selected>+48 601 234 567</option>
+                            <option value="compact">601234567</option>
+                            <option value="dashed">+48 601-234-567</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+                    <button onclick="generateData()" class="flex-1 sm:flex-none bg-accent hover:bg-accent-hover text-white px-6 py-3 rounded-xl font-semibold text-sm shadow-md shadow-accent/30 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-arrows-rotate"></i> Generuj dane
+                    </button>
+                    <button onclick="copyAllData()" class="flex-1 sm:flex-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-5 py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs">
+                        <i class="fa-regular fa-copy text-slate-500 dark:text-slate-400"></i> Kopiuj wszystko
+                    </button>
+                    <!-- Export Dropdown -->
+                    <div class="relative">
+                        <button onclick="toggleExportMenu()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-5 py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs">
+                            <i class="fa-solid fa-download text-slate-500 dark:text-slate-400"></i> Eksport <i class="fa-solid fa-chevron-down text-xs ml-1 text-slate-400"></i>
+                        </button>
+                        <div id="export-menu" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-30 py-2">
+                            <button onclick="exportData('json')" class="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+                                <i class="fa-solid fa-file-code text-accent"></i> Pobierz JSON
+                            </button>
+                            <button onclick="exportData('csv')" class="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+                                <i class="fa-solid fa-file-csv text-emerald-600"></i> Pobierz CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Single View Containers Organized by Sections -->
+        <div id="single-view" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- 1. TOŻSAMOŚĆ I BIOMETRIA -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-all duration-200">
+                <div>
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-user-gear text-accent"></i> Tożsamość i Rodzina
+                        </h3>
+                        <button onclick="copyCardData('identity')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Kopiuj sekcję">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-3.5">
+                        <div id="field-fullname">
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Imię i Nazwisko / Podmiot</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-fullname" class="text-base font-bold text-slate-900 dark:text-white">-</span>
+                                <button onclick="copyField('val-fullname', 'Imię i nazwisko')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div id="field-maiden">
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Nazwisko Rodowe / Matki</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-maiden" class="text-sm font-semibold text-slate-800 dark:text-slate-200">-</span>
+                                <button onclick="copyField('val-maiden', 'Nazwisko rodowe')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div id="field-parents">
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Imię Ojca i Matki</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-parents" class="text-sm font-semibold text-slate-800 dark:text-slate-200">-</span>
+                                <button onclick="copyField('val-parents', 'Rodzice')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div id="field-gender">
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Płeć</span>
+                            <span id="val-gender" class="text-sm font-semibold text-slate-800 dark:text-slate-200">-</span>
+                        </div>
+                        <div id="field-dob">
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Data Urodzenia (Wiek)</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-dob" class="text-sm font-semibold text-slate-800 dark:text-slate-200">-</span>
+                                <button onclick="copyField('val-dob', 'Data urodzenia')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div id="field-pob">
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Miejsce Urodzenia</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-pob" class="text-sm font-semibold text-slate-800 dark:text-slate-200">-</span>
+                                <button onclick="copyField('val-pob', 'Miejsce urodzenia')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div id="field-education">
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Wykształcenie & Zawód</span>
+                            <span id="val-education" class="text-sm font-semibold text-slate-800 dark:text-slate-200 block">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. DOKUMENTY I IDENTYFIKATORY -->
+            <div id="card-documents" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-all duration-200">
+                <div>
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-address-card text-accent"></i> Dokumenty i Identyfikatory
+                        </h3>
+                        <button onclick="copyCardData('documents')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Kopiuj sekcję">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-3.5">
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Numer PESEL</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-pesel" class="text-sm font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">-</span>
+                                <button onclick="copyField('val-pesel', 'PESEL')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Dowód Osobisty</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-idcard" class="text-sm font-mono font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">-</span>
+                                <button onclick="copyField('val-idcard', 'Dowód osobisty')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Paszport Polsko-Unijny (PL)</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-passport" class="text-sm font-mono font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">-</span>
+                                <button onclick="copyField('val-passport', 'Paszport')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">mDowód (mObywatel 2.0)</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-mdowod" class="text-sm font-mono font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">-</span>
+                                <button onclick="copyField('val-mdowod', 'mDowód')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Prawo Jazdy</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-driving" class="text-sm font-mono font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">-</span>
+                                <button onclick="copyField('val-driving', 'Prawo Jazdy')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div id="npwf-container" class="hidden bg-accent-light dark:bg-slate-800/80 p-3 rounded-xl border border-accent/20">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-accent uppercase tracking-wider">NPWZ (Prawo Wyk. Zawodu)</span>
+                                <span id="npwz-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent text-white">-</span>
+                            </div>
+                            <div class="flex items-center justify-between mt-1.5">
+                                <span id="val-npwz" class="text-sm font-mono font-extrabold text-slate-900 dark:text-white">-</span>
+                                <button onclick="copyField('val-npwz', 'NPWZ')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                            <span id="val-npwz-chamber" class="text-[11px] text-slate-500 dark:text-slate-400 block mt-1 font-medium">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. FINANSE I BANKOWOŚĆ -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-all duration-200">
+                <div>
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-credit-card text-accent"></i> Finanse i Bankowość
+                        </h3>
+                        <button onclick="copyCardData('finance')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Kopiuj sekcję">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-3.5">
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Konto Bankowe IBAN (NRB PL Modulo 97)</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-iban" class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 break-all">-</span>
+                                <button onclick="copyField('val-iban', 'Konto Bankowe')" class="text-slate-400 hover:text-accent text-xs ml-1"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Numer Karty Płatniczej (Luhn Check)</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-cardnum" class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">-</span>
+                                <button onclick="copyField('val-cardnum', 'Numer Karty')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Ważność (MM/YY)</span>
+                                <div class="flex items-center justify-between mt-0.5">
+                                    <span id="val-cardexp" class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">-</span>
+                                    <button onclick="copyField('val-cardexp', 'Ważność')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Kod CVV / CVC</span>
+                                <div class="flex items-center justify-between mt-0.5">
+                                    <span id="val-cardcvv" class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">-</span>
+                                    <button onclick="copyField('val-cardcvv', 'CVV')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Waluta Główna & Typ Karty</span>
+                            <span id="val-cardtype" class="text-xs font-semibold text-slate-800 dark:text-slate-200 block">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. KONTAKT I ADRES -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-all duration-200">
+                <div>
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-map-location-dot text-accent"></i> Kontakt i Adres Zamieszkania
+                        </h3>
+                        <button onclick="copyCardData('contact')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Kopiuj sekcję">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-3.5">
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Numer Telefonu</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-phone" class="text-sm font-semibold text-slate-800 dark:text-slate-200">-</span>
+                                <button onclick="copyField('val-phone', 'Telefon')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Adres E-mail</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-email" class="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate pr-2">-</span>
+                                <button onclick="copyField('val-email', 'Email')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Ulica, Nr domu / Lokalu</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-street" class="text-sm font-semibold text-slate-800 dark:text-slate-200">-</span>
+                                <button onclick="copyField('val-street', 'Ulica')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Kod pocztowy i Miejscowość</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-city" class="text-sm font-semibold text-slate-800 dark:text-slate-200">-</span>
+                                <button onclick="copyField('val-city', 'Miejscowość')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Województwo, Powiat & US</span>
+                            <span id="val-voivodeship" class="text-xs font-semibold text-slate-800 dark:text-slate-200 block">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. DANE FIRMOWE I REJESTROWE (NIP, REGON, KRS) -->
+            <div id="card-company-ids" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-all duration-200 md:col-span-2 lg:col-span-2">
+                <div>
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-building-columns text-accent"></i> Dane Firmowe, Urzędowe i Rejestry (NIP / REGON / KRS)
+                        </h3>
+                        <button onclick="copyCardData('business')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Kopiuj sekcję">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">NIP (Numer Identyfikacji Podatkowej)</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-nip" class="text-sm font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">-</span>
+                                <button onclick="copyField('val-nip', 'NIP')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">REGON (9 lub 14 cyfr)</span>
+                            <div class="flex items-center justify-between mt-0.5">
+                                <span id="val-regon" class="text-sm font-mono font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">-</span>
+                                <button onclick="copyField('val-regon', 'REGON')" class="text-slate-400 hover:text-accent text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-slate-400 dark:text-slate-500 font-medium">Numer KRS</span>
+                                <span id="krs-badge" class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">-</span>
+                            </div>
+                            <div class="flex items-center justify-between mt-1">
+                                <span id="val-krs" class="text-sm font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">-</span>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="copyField('val-krs', 'KRS')" class="text-slate-400 hover:text-accent text-xs" title="Kopiuj KRS">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                    <a id="krs-verify-link" href="https://ekrs.ms.gov.pl/web/wyszukiwarka-krs/strona-glowna/" target="_blank" class="text-accent hover:text-accent-dark text-xs flex items-center gap-1 font-semibold" title="Weryfikuj na e-KRS">
+                                        E-KRS <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Kapitał Zakładowy</span>
+                            <span id="val-capital" class="text-sm font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">-</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Data Rejestracji / Utworzenia</span>
+                            <span id="val-regdate" class="text-sm font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">-</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 block font-medium">Nazwa Działalności (JDG / Spółka)</span>
+                            <span id="val-companyname" class="text-sm font-semibold text-slate-800 dark:text-slate-200 block mt-0.5 truncate">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Result Container: Bulk View (Table) -->
+        <div id="bulk-view" class="hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-200">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-xs uppercase font-semibold text-slate-500 dark:text-slate-400 tracking-wider">
+                            <th class="py-3.5 px-4">Lp.</th>
+                            <th class="py-3.5 px-4">Tożsamość / Firma</th>
+                            <th class="py-3.5 px-4">PESEL / NIP</th>
+                            <th class="py-3.5 px-4">NPWZ / KRS</th>
+                            <th class="py-3.5 px-4">Dokument / Paszport</th>
+                            <th class="py-3.5 px-4">Rachunek IBAN</th>
+                            <th class="py-3.5 px-4">Miejscowość</th>
+                            <th class="py-3.5 px-4 text-right">Akcje</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bulk-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-sm text-slate-700 dark:text-slate-300">
+                        <!-- Populated via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal: Multi-Validator -->
+    <div id="modal-validator" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 transition-colors">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+                <h3 class="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-square-check text-accent"></i> Multi-Validator Danych
+                </h3>
+                <button onclick="closeValidatorModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Weryfikuj poprawność sum kontrolnych i strukturalnych (NPWZ, PESEL, NIP, REGON, KRS, Paszport, IBAN, Karta Luhn, Dowód Osobisty).</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Typ Danych do Weryfikacji</label>
+                    <select id="val-type-select" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent text-slate-800 dark:text-slate-200">
+                        <option value="npwz">NPWZ (7 cyfr + OIL/OIPiP)</option>
+                        <option value="krs">Numer KRS (10 cyfr)</option>
+                        <option value="pesel">Numer PESEL (11 cyfr)</option>
+                        <option value="nip">Numer NIP (10 cyfr)</option>
+                        <option value="regon">Numer REGON (9 lub 14 cyfr)</option>
+                        <option value="idcard">Dowód Osobisty (3 litery + 6 cyfr)</option>
+                        <option value="passport">Paszport (2 litery + 7 cyfr)</option>
+                        <option value="iban">Rachunek IBAN (PL + 26 cyfr)</option>
+                        <option value="card">Karta Płatnicza (Algorytm Luhna)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Wprowadź Wartość</label>
+                    <input type="text" id="val-input-text" placeholder="Wprowadź ciąg znaków..." class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-accent text-slate-800 dark:text-slate-200">
+                </div>
+                <button onclick="runValidation()" class="w-full bg-accent hover:bg-accent-hover text-white py-2.5 rounded-xl font-semibold text-sm transition-all shadow-md shadow-accent/30 cursor-pointer">
+                    Sprawdź Poprawność
+                </button>
+                <div id="validation-result" class="hidden p-4 rounded-xl border text-xs font-medium space-y-1">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-6 mt-12 transition-colors duration-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
+            <p>© 2026 Generator Danych Osobowych. Wszystkie dane generowane algorytmicznie wyłącznie w celach testowych i programistycznych.</p>
+            <div class="flex items-center gap-4">
+                <span>Walidacja: Modulo 10, Modulo 11, Modulo 97 & Luhn</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Algorithmic Engine & Application Logic -->
+    <script>
+        // --- POLISH REGIONAL CHAMBERS FOR NPWZ ---
+        const medicalChambers = {
+            lek: [
+                { code: "1", name: "Dolnośląska Izba Lekarska we Wrocławiu" },
+                { code: "2", name: "Kujawsko-Pomorska Izba Lekarska w Toruniu" },
+                { code: "3", name: "Lubelska Izba Lekarska w Lublinie" },
+                { code: "4", name: "Lubuska Izba Lekarska w Zielonej Górze" },
+                { code: "5", name: "Łódzka Izba Lekarska w Łodzi" },
+                { code: "6", name: "Małopolska Izba Lekarska w Krakowie" },
+                { code: "7", name: "Wojskowa Izba Lekarska w Warszawie" },
+                { code: "8", name: "Okręgowa Izba Lekarska w Warszawie" },
+                { code: "9", name: "Opolska Izba Lekarska w Opolu" },
+                { code: "10", name: "Śląska Izba Lekarska w Katowicach" },
+                { code: "11", name: "Okręgowa Izba Lekarska w Gdańsku" },
+                { code: "12", name: "Okręgowa Izba Lekarska w Szczecinie" },
+                { code: "13", name: "Okręgowa Izba Lekarska w Poznaniu" }
+            ],
+            dent: [
+                { code: "1", name: "Regionalna Izba Lekarsko-Dentystyczna w Warszawie" },
+                { code: "2", name: "Dolnośląska Izba Lekarsko-Dentystyczna we Wrocławiu" },
+                { code: "3", name: "Śląska Izba Lekarsko-Dentystyczna w Katowicach" },
+                { code: "4", name: "Wielkopolska Izba Lekarsko-Dentystyczna w Poznaniu" },
+                { code: "5", name: "Małopolska Izba Lekarsko-Dentystyczna w Krakowie" }
+            ],
+            piel: [
+                { code: "1", name: "Okręgowa Izba Pielęgniarek i Położnych w Warszawie" },
+                { code: "2", name: "Okręgowa Izba Pielęgniarek i Położnych w Katowicach" },
+                { code: "3", name: "Okręgowa Izba Pielęgniarek i Położnych w Krakowie" },
+                { code: "4", name: "Okręgowa Izba Pielęgniarek i Położnych we Wrocławiu" },
+                { code: "5", name: "Okręgowa Izba Pielęgniarek i Położnych w Poznaniu" },
+                { code: "6", name: "Okręgowa Izba Pielęgniarek i Położnych w Gdańsku" },
+                { code: "7", name: "Okręgowa Izba Pielęgniarek i Położnych w Łodzi" }
+            ]
+        };
+
+        // --- DATA POOLS ---
+        const maleNames = ["Jan", "Piotr", "Krzysztof", "Andrzej", "Stanisław", "Tomasz", "Paweł", "Marcin", "Michał", "Łukasz", "Grzegorz", "Adam", "Mateusz", "Jakub", "Dariusz", "Mariusz", "Zbigniew", "Maciej", "Robert", "Kamil", "Szymon", "Filip", "Mikołaj", "Wojciech", "Kacper"];
+        const femaleNames = ["Anna", "Maria", "Katarzyna", "Małgorzata", "Agnieszka", "Krystyna", "Barbara", "Ewa", "Elżbieta", "Magdalena", "Joanna", "Aleksandra", "Zofia", "Teresa", "Karolina", "Natalia", "Paulina", "Monika", "Julia", "Maja", "Alicja", "Wiktoria"];
+        const surnames = ["Nowak", "Kowalski", "Wiśniewski", "Wójcik", "Kowalczyk", "Kamiński", "Lewandowski", "Zieliński", "Szymański", "Woźniak", "Dąbrowski", "Kozłowski", "Jankowski", "Mazur", "Kwiatkowski", "Krawczyk", "Kaczmarek", "Piotrowski", "Grabowski", "Zając"];
+        const maidenSurnamesPool = ["Zielińska", "Kowalska", "Nowakowska", "Majewska", "Wojciechowska", "Kaczmarek", "Szymańska", "Dąbrowska", "Czerwińska", "Krawczyk"];
+        const maleFatherNames = ["Stefan", "Kazimierz", "Ryszard", "Józef", "Mieczysław", "Henryk", "Jerzy", "Tadeusz", "Zdzisław", "Marian", "Bogdan", "Władysław"];
+        const femaleMotherNames = ["Maria", "Krystyna", "Anna", "Barbara", "Elżbieta", "Halina", "Teresa", "Danuta", "Jadwiga", "Irena", "Zofia", "Helena"];
+
+        const companyPrefixes = ["Pol-Tech", "InnoSoft", "Agro-Handel", "Trans-Logistics", "Bud-System", "Eco-Energy", "Pro-Design", "Nexus", "Apex Solutions", "Vanguard", "Stal-Met", "Centrum Medyczne", "Fundacja Nowy Horyzont", "Stowarzyszenie Rozwoju", "Pol-Net", "Baltic-Trade", "Silesia-Services"];
+        const companySuffixes = ["Sp. z o.o.", "S.A.", "Sp. k.", "Sp. z o.o. Sp. k.", "S.K.A."];
+
+        const emailDomains = ["gmail.com", "wp.pl", "o2.pl", "yahoo.com", "outlook.com", "interia.pl", "gazeta.pl", "onet.pl"];
+
+        const educationLevels = [
+            "Wyższe (Magister)", "Wyższe (Inżynier)", "Wyższe (Licencjat)", "Wyższe (Doktor)",
+            "Średnie Ogólnokształcące", "Średnie Techniczne", "Zasadnicze Zawodowe", "Podstawowe"
+        ];
+
+        const professionsList = [
+            "Programista / Architekt Software", "Główny Księgowy", "Analityk Finansowy", "Adwokat / Radca Prawny",
+            "Nauczyciel Dyplomowany", "Inżynier Budownictwa", "Kierownik Logistyki", "Architekt Wnętrz", "Doradca Podatkowy"
+        ];
+
+        const cities = [
+            { name: 'Warszawa', postal: '00-001', voivodeship: 'mazowieckie', county: 'Warszawa', taxOffice: 'Pierwszy Urząd Skarbowy Warszawa-Śródmieście' },
+            { name: 'Kraków', postal: '30-002', voivodeship: 'małopolskie', county: 'm. Kraków', taxOffice: 'Urząd Skarbowy Kraków-Krowodrza' },
+            { name: 'Łódź', postal: '90-001', voivodeship: 'łódzkie', county: 'm. Łódź', taxOffice: 'Pierwszy Urząd Skarbowy w Łodzi' },
+            { name: 'Wrocław', postal: '50-001', voivodeship: 'dolnośląskie', county: 'm. Wrocław', taxOffice: 'Urząd Skarbowy Wrocław-Fabryczna' },
+            { name: 'Poznań', postal: '60-001', voivodeship: 'wielkopolskie', county: 'm. Poznań', taxOffice: 'Urząd Skarbowy Poznań-Jeżyce' },
+            { name: 'Gdańsk', postal: '80-001', voivodeship: 'pomorskie', county: 'm. Gdańsk', taxOffice: 'Pierwszy Urząd Skarbowy w Gdańsku' },
+            { name: 'Katowice', postal: '40-001', voivodeship: 'śląskie', county: 'm. Katowice', taxOffice: 'Pierwszy Urząd Skarbowy w Katowicach' },
+            { name: 'Lublin', postal: '20-001', voivodeship: 'lubelskie', county: 'm. Lublin', taxOffice: 'Pierwszy Urząd Skarbowy w Lublinie' },
+            { name: 'Szczecin', postal: '70-001', voivodeship: 'zachodniopomorskie', county: 'm. Szczecin', taxOffice: 'Pierwszy Urząd Skarbowy w Szczecinie' },
+            { name: 'Rzeszów', postal: '35-001', voivodeship: 'podkarpackie', county: 'm. Rzeszów', taxOffice: 'Urząd Skarbowy w Rzeszowie' },
+            { name: 'Bydgoszcz', postal: '85-001', voivodeship: 'kujawsko-pomorskie', county: 'm. Bydgoszcz', taxOffice: 'Pierwszy Urząd Skarbowy w Bydgoszczy' },
+            { name: 'Białystok', postal: '15-001', voivodeship: 'podlaskie', county: 'm. Białystok', taxOffice: 'Pierwszy Urząd Skarbowy w Białymstoku' }
+        ];
+
+        const streets = ["Marszałkowska", "Nowy Świat", "Aleje Jerozolimskie", "Piotrkowska", "Floriańska", "Długa", "Krakowska", "Kościuszki", "Mickiewicza", "Słowackiego", "Piłsudskiego", "Grunwaldzka", "Polna", "Leśna", "Słoneczna", "Młyńska", "Ogrodowa"];
+        const mobilePrefixes = ['450', '451', '452', '453', '500', '501', '502', '503', '504', '505', '506', '507', '508', '509', '510', '511', '512', '513', '514', '515', '516', '517', '518', '519', '530', '531', '532', '533', '534', '535', '570', '571', '572', '573', '574', '575', '576', '577', '578', '600', '601', '602', '603', '604', '605', '606', '607', '608', '609', '660', '661', '662', '663', '664', '665', '666', '667', '668', '669', '691', '692', '693', '694', '695', '696', '697', '698', '721', '722', '723', '724', '725', '726', '727', '728', '730', '731', '732', '733', '781', '782', '783', '784', '785', '787', '788', '790', '791', '792', '793', '794', '795', '796', '880', '888', '889'];
+        const bankCodes = ['1010', '1020', '1050', '1090', '1140', '1160', '1240', '1320', '1540', '1600', '2030', '2490'];
+
+        function randomChoice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+        function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+        function calculateAge(birthDate) {
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+            return age;
+        }
+
+        // Generate NPWZ: exactly 7 digits
+        function generateNPWZ(professionType) {
+            if (professionType === 'none') return null;
+            const chamberList = medicalChambers[professionType] || medicalChambers.lek;
+            const chamber = randomChoice(chamberList);
+            const serial = String(randomInt(100000, 999999));
+            const fullNpwa = `${chamber.code}${serial}`.slice(0, 7);
+            
+            let label = "Lekarz";
+            if (professionType === 'dent') label = "Lekarz Dentysta";
+            if (professionType === 'piel') label = "Pielęgniarka / Położna";
+
+            return {
+                number: String(fullNpwa).padStart(7, '0'),
+                chamberName: chamber.name,
+                professionLabel: label
+            };
+        }
+
+        function generateDrivingLicense() {
+            const serialYear = randomInt(90, 26);
+            const randomPart = String(randomInt(10000, 99999));
+            const centerCode = String(randomInt(10, 50));
+            return `${serialYear}/${centerCode}/${randomPart}`;
+        }
+
+        function generatePassportNumber() {
+            const letterValues = {};
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            for (let i = 0; i < chars.length; i++) letterValues[chars[i]] = 10 + i;
+
+            let letters = "";
+            for (let i = 0; i < 2; i++) letters += chars[Math.floor(Math.random() * chars.length)];
+            let digits = "";
+            for (let i = 0; i < 6; i++) digits += Math.floor(Math.random() * 10);
+
+            const weights = [7, 3, 1, 7, 3, 1, 7, 3];
+            let sum = weights[0] * letterValues[letters[0]] + weights[1] * letterValues[letters[1]];
+            for (let i = 0; i < 6; i++) sum += weights[2 + i] * parseInt(digits[i]);
+            const controlDigit = sum % 10;
+            return `${letters}${controlDigit}${digits}`;
+        }
+
+        function generateCreditCard() {
+            const isVisa = Math.random() > 0.5;
+            let prefix = isVisa ? "4" : randomChoice(["51", "52", "53", "54", "55"]);
+            let cardNum = prefix;
+            while (cardNum.length < 15) cardNum += randomInt(0, 9);
+
+            let sum = 0, shouldDouble = true;
+            for (let i = cardNum.length - 1; i >= 0; i--) {
+                let digit = parseInt(cardNum.charAt(i));
+                if (shouldDouble) { digit *= 2; if (digit > 9) digit -= 9; }
+                sum += digit;
+                shouldDouble = !shouldDouble;
+            }
+            let checkDigit = (10 - (sum % 10)) % 10;
+            cardNum += checkDigit;
+
+            return {
+                number: cardNum.match(/.{1,4}/g).join(' '),
+                exp: `${String(randomInt(1, 12)).padStart(2, '0')}/${randomInt(27, 32)}`,
+                cvv: String(randomInt(100, 999)),
+                type: isVisa ? "Visa (PLN)" : "Mastercard (PLN)"
+            };
+        }
+
+        function generatePESEL(genderCode, birthDate) {
+            const year = birthDate.getFullYear(), month = birthDate.getMonth() + 1, day = birthDate.getDate();
+            let yy = year % 100, mm = month;
+            if (year >= 1800 && year <= 1899) mm += 80;
+            else if (year >= 2000 && year <= 2099) mm += 20;
+            else if (year >= 2100 && year <= 2199) mm += 40;
+
+            const base9 = String(yy).padStart(2, '0') + String(mm).padStart(2, '0') + String(day).padStart(2, '0') + String(randomInt(0, 999)).padStart(3, '0') + (genderCode === 'K' ? randomInt(0,4)*2 : randomInt(0,4)*2+1);
+            const weights = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3];
+            let sum = 0;
+            for (let i = 0; i < 10; i++) sum += parseInt(base9.charAt(i)) * weights[i];
+            let checksum = (10 - (sum % 10)) % 10;
+            return base9 + checksum;
+        }
+
+        function generateIDCardNumber() {
+            const letterValues = {};
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            for (let i = 0; i < chars.length; i++) letterValues[chars[i]] = 10 + i;
+            let letters = "";
+            for (let i = 0; i < 3; i++) letters += chars[Math.floor(Math.random() * chars.length)];
+            let digits = "";
+            for (let i = 0; i < 5; i++) digits += Math.floor(Math.random() * 10);
+            const weights = [7, 3, 1, 7, 3, 1, 7, 3];
+            let sum = weights[0] * letterValues[letters[0]] + weights[1] * letterValues[letters[1]] + weights[2] * letterValues[letters[2]];
+            for (let i = 0; i < 5; i++) sum += weights[3 + i] * parseInt(digits[i]);
+            return `${letters}${sum % 10}${digits}`;
+        }
+
+        function generateMDowodNumber() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            return `M${chars[Math.floor(Math.random() * chars.length)]}${chars[Math.floor(Math.random() * chars.length)]} ${randomInt(100000, 999999)}`;
+        }
+
+        function generateNIP() {
+            while (true) {
+                let base9 = "";
+                for (let i = 0; i < 9; i++) base9 += randomInt(0, 9);
+                const weights = [6, 5, 7, 2, 3, 4, 5, 6, 7];
+                let sum = 0;
+                for (let i = 0; i < 9; i++) sum += parseInt(base9.charAt(i)) * weights[i];
+                let remainder = sum % 11;
+                if (remainder !== 10) return base9 + remainder;
+            }
+        }
+
+        function generateREGON9() {
+            while (true) {
+                let base8 = "";
+                for (let i = 0; i < 8; i++) base8 += randomInt(0, 9);
+                const weights = [8, 9, 2, 3, 4, 5, 6, 7];
+                let sum = 0;
+                for (let i = 0; i < 8; i++) sum += parseInt(base8.charAt(i)) * weights[i];
+                let rem = sum % 11;
+                return base8 + (rem === 10 ? 0 : rem);
+            }
+        }
+
+        function generateREGON14(regon9) {
+            let base13 = regon9 + String(randomInt(100, 999));
+            const weights = [2, 4, 8, 5, 0, 9, 7, 3, 6, 1, 2, 4, 8];
+            let sum = 0;
+            for (let i = 0; i < 13; i++) sum += parseInt(base13.charAt(i)) * weights[i];
+            let rem = sum % 11;
+            return base13 + (rem === 10 ? 0 : rem);
+        }
+
+        function generateKRS(registryTypeFilter = 'any') {
+            let type = registryTypeFilter === 'any' ? (Math.random() > 0.3 ? 'P' : 'S') : registryTypeFilter;
+            return { number: String(randomInt(1, 1100000)).padStart(10, '0'), typeCode: type, typeName: type === 'P' ? 'Rejestr Przedsiębiorców' : 'Rejestr Stowarzyszeń' };
+        }
+
+        function generatePLIBAN() {
+            const bbanBase = randomChoice(bankCodes) + String(randomInt(10000000000000000, 99999999999999999)).padStart(20, '0');
+            const rearranged = bbanBase + "252100";
+            let remainder = 0;
+            for (let i = 0; i < rearranged.length; i++) remainder = (remainder * 10 + parseInt(rearranged.charAt(i))) % 97;
+            return `PL${String(98 - remainder).padStart(2, '0')}${bbanBase}`;
+        }
+
+        function generatePhoneNumber(formatStyle) {
+            const prefix = randomChoice(mobilePrefixes);
+            const p2 = String(randomInt(100, 999)), p3 = String(randomInt(100, 999));
+            if (formatStyle === 'compact') return `${prefix}${p2}${p3}`;
+            if (formatStyle === 'dashed') return `+48 ${prefix}-${p2}-${p3}`;
+            return `+48 ${prefix} ${p2} ${p3}`;
+        }
+
+        // APP STATE
+        let entityType = 'person';
+        let genderFilter = 'any';
+        let currentSingleData = null;
+        let currentBulkData = [];
+
+        function setEntityType(type) {
+            entityType = type;
+            document.getElementById('btn-type-person').className = type === 'person' ? "px-4 py-2 text-sm font-medium rounded-lg transition-all bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs" : "px-4 py-2 text-sm font-medium rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white";
+            document.getElementById('btn-type-company').className = type === 'company' ? "px-4 py-2 text-sm font-medium rounded-lg transition-all bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs" : "px-4 py-2 text-sm font-medium rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white";
+
+            document.getElementById('gender-filter-container').classList.toggle('opacity-40', type === 'company');
+            document.getElementById('gender-filter-container').classList.toggle('pointer-events-none', type === 'company');
+            document.getElementById('krs-registry-container').classList.toggle('opacity-40', type === 'person');
+            document.getElementById('krs-registry-container').classList.toggle('pointer-events-none', type === 'person');
+            document.getElementById('card-documents').classList.toggle('hidden', type === 'company');
+            generateData();
+        }
+
+        function setGender(gender) {
+            genderFilter = gender;
+            ['any', 'm', 'f'].forEach(g => {
+                const btn = document.getElementById(`btn-gender-${g}`);
+                if (btn) {
+                    const match = (g === gender || (gender === 'K' && g === 'f') || (gender === 'M' && g === 'm'));
+                    btn.className = match ? "px-3.5 py-2 text-sm font-medium rounded-lg transition-all bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs" : "px-3.5 py-2 text-sm font-medium rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white";
+                }
+            });
+            generateData();
+        }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            document.getElementById('theme-icon').className = isDark ? "fa-solid fa-sun" : "fa-solid fa-moon";
+        }
+
+        function generateEntity() {
+            const formatStyle = document.getElementById('phone-format').value;
+            const krsRegistryFilter = document.getElementById('krs-registry-type').value;
+            const medProfessionVal = document.getElementById('medical-profession').value;
+            const cityObj = randomChoice(cities);
+            const pobObj = randomChoice(cities);
+            const street = randomChoice(streets);
+            const streetFull = `ul. ${street} ${randomInt(1, 140)}${Math.random() > 0.4 ? '/' + randomInt(1, 90) : ''}`;
+            const cityFull = `${cityObj.postal} ${cityObj.name}`;
+            const card = generateCreditCard();
+
+            if (entityType === 'person') {
+                const gender = genderFilter === 'M' ? 'M' : (genderFilter === 'K' ? 'K' : (Math.random() < 0.5 ? 'M' : 'K'));
+                let firstName = gender === 'M' ? randomChoice(maleNames) : randomChoice(femaleNames);
+                let lastName = randomChoice(surnames);
+                if (gender === 'K') {
+                    if (lastName.endsWith('ski')) lastName = lastName.replace(/ski$/, 'ska');
+                    else if (lastName.endsWith('cki')) lastName = lastName.replace(/cki$/, 'cka');
+                }
+                const maidenSurname = gender === 'K' ? randomChoice(maidenSurnamesPool) : lastName;
+                const fatherName = randomChoice(maleFatherNames);
+                const motherName = randomChoice(femaleMotherNames);
+                const birthDate = new Date(randomInt(1955, 2003), randomInt(0, 11), randomInt(1, 28));
+                const age = calculateAge(birthDate);
+                const pesel = generatePESEL(gender, birthDate);
+                const npwzData = generateNPWZ(medProfessionVal);
+
+                let profession = randomChoice(professionsList);
+                if (npwzData) profession = npwzData.professionLabel;
+
+                const cleanFirst = firstName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                const cleanLast = lastName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                const email = `${cleanFirst}.${cleanLast}${randomInt(10,99)}@${randomChoice(emailDomains)}`;
+
+                return {
+                    type: 'Osoba Fizyczna',
+                    name: `${firstName} ${lastName}`,
+                    maidenName: maidenSurname,
+                    parents: `Ojciec: ${fatherName}, Matka: ${motherName}`,
+                    gender: gender === 'M' ? 'Mężczyzna' : 'Kobieta',
+                    dob: `${birthDate.toLocaleDateString('pl-PL')} (${age} lat)`,
+                    pob: pobObj.name,
+                    education: randomChoice(educationLevels),
+                    profession,
+                    pesel,
+                    idCard: generateIDCardNumber(),
+                    passport: generatePassportNumber(),
+                    mdowod: generateMDowodNumber(),
+                    drivingLicense: generateDrivingLicense(),
+                    npwz: npwzData ? npwzData.number : null,
+                    npwzChamber: npwzData ? npwzData.chamberName : null,
+                    nip: generateNIP(),
+                    regon: generateREGON9(),
+                    krs: 'Brak (Osoba fizyczna)',
+                    krsType: 'N/A',
+                    capital: 'N/A',
+                    regDate: 'N/A',
+                    companyName: `${firstName} ${lastName} Usługi`,
+                    taxOffice: cityObj.taxOffice,
+                    phone: generatePhoneNumber(formatStyle),
+                    email,
+                    iban: generatePLIBAN(),
+                    cardNum: card.number,
+                    cardExp: card.exp,
+                    cardCvv: card.cvv,
+                    cardType: card.type,
+                    street: streetFull,
+                    city: cityFull,
+                    voivodeship: `${cityObj.voivodeship}, pow. ${cityObj.county}`
+                };
+            } else {
+                const krsData = generateKRS(krsRegistryFilter);
+                const cName = krsData.typeCode === 'S' ? `${randomChoice(["Fundacja", "Stowarzyszenie"])} ${randomChoice(["Nowe Jutro", "Rozwoju Regionalnego", "Pomocna Dłoń"])}` : `${randomChoice(companyPrefixes)} ${randomChoice(companySuffixes)}`;
+                const regon9 = generateREGON9();
+
+                return {
+                    type: 'Firma / Spółka',
+                    name: cName,
+                    maidenName: 'N/A',
+                    parents: 'N/A',
+                    gender: 'N/A',
+                    dob: 'N/A',
+                    pob: 'N/A',
+                    education: 'N/A',
+                    profession: 'Działalność Gospodarcza',
+                    pesel: 'Brak (Firma)',
+                    idCard: 'N/A',
+                    passport: 'N/A',
+                    mdowod: 'N/A',
+                    drivingLicense: 'N/A',
+                    npwz: null,
+                    npwzChamber: null,
+                    nip: generateNIP(),
+                    regon: `${regon9} (14-cyfr: ${generateREGON14(regon9)})`,
+                    krs: krsData.number,
+                    krsType: krsData.typeName,
+                    capital: `${(randomInt(5, 500) * 1000).toLocaleString('pl-PL')} PLN`,
+                    regDate: `${randomInt(1,28)}.${randomInt(1,12)}.${randomInt(2005,2024)} r.`,
+                    companyName: cName,
+                    taxOffice: cityObj.taxOffice,
+                    phone: generatePhoneNumber(formatStyle),
+                    email: `biuro@${cName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0,12)}.pl`,
+                    iban: generatePLIBAN(),
+                    cardNum: card.number,
+                    cardExp: card.exp,
+                    cardCvv: card.cvv,
+                    cardType: card.type,
+                    street: streetFull,
+                    city: cityFull,
+                    voivodeship: `${cityObj.voivodeship}, pow. ${cityObj.county}`
+                };
+            }
+        }
+
+        function generateData() {
+            const count = parseInt(document.getElementById('bulk-count').value) || 1;
+            const singleView = document.getElementById('single-view');
+            const bulkView = document.getElementById('bulk-view');
+
+            if (count === 1) {
+                singleView.classList.remove('hidden');
+                bulkView.classList.add('hidden');
+                currentSingleData = generateEntity();
+
+                document.getElementById('val-fullname').innerText = currentSingleData.name;
+                document.getElementById('val-maiden').innerText = currentSingleData.maidenName;
+                document.getElementById('val-parents').innerText = currentSingleData.parents;
+                document.getElementById('val-gender').innerText = currentSingleData.gender;
+                document.getElementById('val-dob').innerText = currentSingleData.dob;
+                document.getElementById('val-pob').innerText = currentSingleData.pob;
+                document.getElementById('val-education').innerText = `${currentSingleData.education} - ${currentSingleData.profession}`;
+
+                document.getElementById('val-pesel').innerText = currentSingleData.pesel;
+                document.getElementById('val-idcard').innerText = currentSingleData.idCard;
+                document.getElementById('val-passport').innerText = currentSingleData.passport;
+                document.getElementById('val-mdowod').innerText = currentSingleData.mdowod;
+                document.getElementById('val-driving').innerText = currentSingleData.drivingLicense;
+
+                const npwfContainer = document.getElementById('npwf-container');
+                if (currentSingleData.npwz) {
+                    npwfContainer.classList.remove('hidden');
+                    document.getElementById('val-npwz').innerText = currentSingleData.npwz;
+                    document.getElementById('npwz-badge').innerText = currentSingleData.profession;
+                    document.getElementById('val-npwz-chamber').innerText = currentSingleData.npwzChamber;
+                } else {
+                    npwfContainer.classList.add('hidden');
+                }
+
+                document.getElementById('val-iban').innerText = currentSingleData.iban;
+                document.getElementById('val-cardnum').innerText = currentSingleData.cardNum;
+                document.getElementById('val-cardexp').innerText = currentSingleData.cardExp;
+                document.getElementById('val-cardcvv').innerText = currentSingleData.cardCvv;
+                document.getElementById('val-cardtype').innerText = currentSingleData.cardType;
+
+                document.getElementById('val-phone').innerText = currentSingleData.phone;
+                document.getElementById('val-email').innerText = currentSingleData.email;
+                document.getElementById('val-street').innerText = currentSingleData.street;
+                document.getElementById('val-city').innerText = currentSingleData.city;
+                document.getElementById('val-voivodeship').innerText = `${currentSingleData.voivodeship} | US: ${currentSingleData.taxOffice}`;
+
+                document.getElementById('val-nip').innerText = currentSingleData.nip;
+                document.getElementById('val-regon').innerText = currentSingleData.regon;
+                document.getElementById('val-krs').innerText = currentSingleData.krs;
+                document.getElementById('krs-badge').innerText = currentSingleData.krsType;
+                document.getElementById('val-capital').innerText = currentSingleData.capital;
+                document.getElementById('val-regdate').innerText = currentSingleData.regDate;
+                document.getElementById('val-companyname').innerText = currentSingleData.companyName;
+            } else {
+                singleView.classList.add('hidden');
+                bulkView.classList.remove('hidden');
+                currentBulkData = [];
+                const tbody = document.getElementById('bulk-table-body');
+                tbody.innerHTML = '';
+
+                for (let i = 0; i < count; i++) {
+                    const item = generateEntity();
+                    currentBulkData.push(item);
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-0";
+                    tr.innerHTML = `
+                        <td class="py-3 px-4 text-xs font-semibold text-slate-400">${i + 1}</td>
+                        <td class="py-3 px-4 font-semibold text-slate-900 dark:text-white">${item.name}</td>
+                        <td class="py-3 px-4 font-mono text-xs">${item.pesel !== 'Brak (Firma)' ? item.pesel : item.nip}</td>
+                        <td class="py-3 px-4 font-mono text-xs font-bold text-accent">${item.npwz || item.krs}</td>
+                        <td class="py-3 px-4 font-mono text-xs">${item.passport !== 'N/A' ? item.passport : item.idCard}</td>
+                        <td class="py-3 px-4 font-mono text-xs">${item.iban}</td>
+                        <td class="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">${item.city}</td>
+                        <td class="py-3 px-4 text-right">
+                            <button onclick="copyText('Imię/Firma: ${item.name}, PESEL/NIP: ${item.pesel}/${item.nip}, NPWZ/KRS: ${item.npwz || item.krs}, Tel: ${item.phone}')" class="text-slate-400 hover:text-accent p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            }
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            document.getElementById('toast-message').innerText = msg;
+            icon.className = isError ? "fa-solid fa-circle-xmark text-rose-400 text-lg" : "fa-solid fa-circle-check text-emerald-400 text-lg";
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-24', 'opacity-0'), 2500);
+        }
+
+        function copyText(text) {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); showToast('Skopiowano do schowka!'); } catch (err) { showToast('Błąd kopiowania', true); }
+            document.body.removeChild(ta);
+        }
+
+        function copyField(elemId, label) {
+            const el = document.getElementById(elemId);
+            if (el && el.innerText) { copyText(el.innerText); showToast(`Skopiowano: ${label}`); }
+        }
+
+        function copyAllData() {
+            const count = parseInt(document.getElementById('bulk-count').value) || 1;
+            if (count === 1 && currentSingleData) {
+                copyText(Object.entries(currentSingleData).map(([k, v]) => `${k}: ${v}`).join('\n'));
+            } else if (currentBulkData.length > 0) {
+                copyText(currentBulkData.map((d, i) => `=== REKORD #${i+1} ===\n` + Object.entries(d).map(([k,v]) => `${k}: ${v}`).join('\n')).join('\n\n'));
+            }
+        }
+
+        function copyCardData(key) {
+            if (!currentSingleData) return;
+            let text = "";
+            if (key === 'identity') text = `Imię i Nazwisko: ${currentSingleData.name}\nRodowe: ${currentSingleData.maidenName}\nRodzice: ${currentSingleData.parents}\nPłeć: ${currentSingleData.gender}\nData Ur.: ${currentSingleData.dob}\nZawód: ${currentSingleData.profession}`;
+            else if (key === 'documents') text = `PESEL: ${currentSingleData.pesel}\nDowód: ${currentSingleData.idCard}\nPaszport: ${currentSingleData.passport}\nmDowód: ${currentSingleData.mdowod}\nPrawo Jazdy: ${currentSingleData.drivingLicense}` + (currentSingleData.npwz ? `\nNPWZ: ${currentSingleData.npwz} (${currentSingleData.npwzChamber})` : '');
+            else if (key === 'finance') text = `IBAN: ${currentSingleData.iban}\nKarta: ${currentSingleData.cardNum}\nWażność: ${currentSingleData.cardExp}\nCVV: ${currentSingleData.cardCvv}`;
+            else if (key === 'contact') text = `Telefon: ${currentSingleData.phone}\nEmail: ${currentSingleData.email}\nAdres: ${currentSingleData.street}, ${currentSingleData.city}\nSkarbowy: ${currentSingleData.taxOffice}`;
+            else if (key === 'business') text = `NIP: ${currentSingleData.nip}\nREGON: ${currentSingleData.regon}\nKRS: ${currentSingleData.krs}\nKapitał: ${currentSingleData.capital}`;
+            copyText(text);
+        }
+
+        function toggleExportMenu() { document.getElementById('export-menu').classList.toggle('hidden'); }
+
+        function exportData(format) {
+            const data = (parseInt(document.getElementById('bulk-count').value) || 1) === 1 ? [currentSingleData] : currentBulkData;
+            let content = format === 'json' ? JSON.stringify(data, null, 2) : [Object.keys(data[0]).join(','), ...data.map(obj => Object.values(obj).map(v => `"${v}"`).join(','))].join('\n');
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dane_polska_${new Date().getTime()}.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            document.getElementById('export-menu').classList.add('hidden');
+            showToast(`Wyeksportowano plik .${format}`);
+        }
+
+        function openValidatorModal() { document.getElementById('modal-validator').classList.remove('hidden'); }
+        function closeValidatorModal() { document.getElementById('modal-validator').classList.add('hidden'); document.getElementById('validation-result').classList.add('hidden'); document.getElementById('val-input-text').value = ''; }
+
+        function runValidation() {
+            const type = document.getElementById('val-type-select').value;
+            const input = document.getElementById('val-input-text').value.trim();
+            const res = document.getElementById('validation-result');
+            res.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200', 'text-emerald-800', 'bg-rose-50', 'border-rose-200', 'text-rose-800');
+
+            let isValid = false, msg = '';
+            if (type === 'npwz') {
+                isValid = /^\d{7}$/.test(input);
+                msg = isValid ? 'NPWZ ma poprawną strukturę 7 cyfr (kod izby + numer unikalny).' : 'NPWZ musi składać się z dokładnie 7 cyfr.';
+            } else if (type === 'krs') {
+                isValid = /^\d{10}$/.test(input);
+                msg = isValid ? 'Numer KRS ma poprawną długość 10 cyfr.' : 'KRS musi zawierać dokładnie 10 cyfr.';
+            } else if (type === 'pesel') {
+                if (/^\d{11}$/.test(input)) {
+                    const w = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3];
+                    let sum = 0;
+                    for (let i = 0; i < 10; i++) sum += parseInt(input.charAt(i)) * w[i];
+                    isValid = ((10 - (sum % 10)) % 10 === parseInt(input.charAt(10)));
+                    msg = isValid ? 'Numer PESEL jest matematycznie poprawny.' : 'Błędna suma kontrolna PESEL.';
+                } else msg = 'PESEL musi mieć 11 cyfr.';
+            } else if (type === 'nip') {
+                const clean = input.replace(/[\s-]/g, '');
+                if (/^\d{10}$/.test(clean)) {
+                    const w = [6, 5, 7, 2, 3, 4, 5, 6, 7];
+                    let sum = 0;
+                    for (let i = 0; i < 9; i++) sum += parseInt(clean.charAt(i)) * w[i];
+                    isValid = (sum % 11 === parseInt(clean.charAt(9)));
+                    msg = isValid ? 'Numer NIP jest poprawny.' : 'Błędna suma kontrolna NIP.';
+                } else msg = 'NIP musi składać się z 10 cyfr.';
+            } else if (type === 'regon') {
+                const clean = input.replace(/[\s-]/g, '');
+                if (clean.length === 9) {
+                    const w = [8, 9, 2, 3, 4, 5, 6, 7];
+                    let sum = 0;
+                    for (let i = 0; i < 8; i++) sum += parseInt(clean.charAt(i)) * w[i];
+                    let rem = sum % 11; if (rem === 10) rem = 0;
+                    isValid = (rem === parseInt(clean.charAt(8)));
+                    msg = isValid ? 'REGON 9 jest poprawny.' : 'Błędna suma kontrolna REGON 9.';
+                } else if (clean.length === 14) {
+                    const w = [2, 4, 8, 5, 0, 9, 7, 3, 6, 1, 2, 4, 8];
+                    let sum = 0;
+                    for (let i = 0; i < 13; i++) sum += parseInt(clean.charAt(i)) * w[i];
+                    let rem = sum % 11; if (rem === 10) rem = 0;
+                    isValid = (rem === parseInt(clean.charAt(13)));
+                    msg = isValid ? 'REGON 14 jest poprawny.' : 'Błędna suma kontrolna REGON 14.';
+                } else msg = 'REGON musi mieć 9 lub 14 cyfr.';
+            } else if (type === 'idcard') {
+                const clean = input.replace(/\s/g, '').toUpperCase();
+                if (/^[A-Z]{3}\d{6}$/.test(clean)) {
+                    const letterValues = {};
+                    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                    for (let i = 0; i < chars.length; i++) letterValues[chars[i]] = 10 + i;
+                    const weights = [7, 3, 1, 7, 3, 1, 7, 3];
+                    let sum = weights[0] * letterValues[clean[0]] + weights[1] * letterValues[clean[1]] + weights[2] * letterValues[clean[2]];
+                    for (let i = 0; i < 5; i++) sum += weights[3 + i] * parseInt(clean.charAt(4 + i));
+                    isValid = (sum % 10 === parseInt(clean.charAt(3)));
+                    msg = isValid ? 'Numer dowodu osobistego jest poprawny.' : 'Błędna cyfra kontrolna dowodu osobistego.';
+                } else msg = 'Dowód osobisty wymaga formatu: 3 litery i 6 cyfr.';
+            } else if (type === 'passport') {
+                const clean = input.replace(/\s/g, '').toUpperCase();
+                isValid = /^[A-Z]{2}\d{7}$/.test(clean);
+                msg = isValid ? 'Paszport ma poprawny format.' : 'Format paszportu to 2 litery i 7 cyfr.';
+            } else if (type === 'iban') {
+                const clean = input.replace(/\s/g, '').toUpperCase();
+                if (/^PL\d{26}$/.test(clean)) {
+                    const rearranged = clean.slice(4) + "252100";
+                    let rem = 0;
+                    for (let i = 0; i < rearranged.length; i++) rem = (rem * 10 + parseInt(rearranged.charAt(i))) % 97;
+                    isValid = (rem === 1);
+                    msg = isValid ? 'Numer IBAN PL jest poprawny (Mod 97).' : 'Błędny numer konta IBAN.';
+                } else msg = 'Polski IBAN musi zaczynać się od PL i mieć 26 cyfr.';
+            } else if (type === 'card') {
+                const clean = input.replace(/[\s-]/g, '');
+                if (/^\d{13,19}$/.test(clean)) {
+                    let sum = 0, double = false;
+                    for (let i = clean.length - 1; i >= 0; i--) {
+                        let d = parseInt(clean.charAt(i));
+                        if (double) { d *= 2; if (d > 9) d -= 9; }
+                        sum += d; double = !double;
+                    }
+                    isValid = (sum % 10 === 0);
+                    msg = isValid ? 'Karta spełnia algorytm Luhna.' : 'Niepoprawny numer karty płatniczej.';
+                } else msg = 'Wprowadź prawidłową liczbę cyfr karty.';
+            }
+
+            if (isValid) {
+                res.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-800');
+                res.innerHTML = `<div class="flex items-center gap-2 font-bold text-emerald-900"><i class="fa-solid fa-circle-check"></i> Weryfikacja Pozytywna</div><p>${msg}</p>`;
+            } else {
+                res.classList.add('bg-rose-50', 'border-rose-200', 'text-rose-800');
+                res.innerHTML = `<div class="flex items-center gap-2 font-bold text-rose-900"><i class="fa-solid fa-circle-xmark"></i> Weryfikacja Negatywna</div><p>${msg}</p>`;
+            }
+        }
+
+        window.onload = function() { generateData(); };
+    </script>
+</body>
+</html>
