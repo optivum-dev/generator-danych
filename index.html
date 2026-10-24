@@ -517,9 +517,7 @@
     <!-- Footer -->
     <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-6 mt-12 transition-colors duration-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-            <p>© 2026 Generator Danych Osobowych. Wszystkie dane generowane algorytmicznie wyłącznie w celach testowych i programistycznych.</p>
-            <div class="flex items-center gap-4">
-                <span>Walidacja: Modulo 10, Modulo 11, Modulo 97 & Luhn</span>
+<p>&copy; <span id="current-year"></span> Generator Danych Osobowych. Wszelkie prawa zastrzeżone.</p>            <div class="flex items-center gap-4">
             </div>
         </div>
     </footer>
@@ -1164,6 +1162,7 @@
         }
 
         window.onload = function() { generateData(); };
-    </script>
+document.getElementById('current-year').textContent = new Date().getFullYear();
+</script>
 </body>
 </html>
